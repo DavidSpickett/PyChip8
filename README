@@ -1,2 +1,2 @@
-PyChip8 is a Python interpreter of the CHIP-8 interpreted programming language. It requires Python 2.6 and PyGame along with rooms and a .wav file for the blip sound.
+PyChip8 is a Python interpreter of the CHIP-8 interpreted programming language. It requires Python 2.6 and PyGame along with rooms and a "sound.wav" file for the blip sound.
 Usage:cd to the directory the script is in and run the following...python main.py ROMNAME SOUND(0 or 1) FULLSCREEN(0 or 1) PIXELSIZESo if your rom is called PONG  and you want sound on in windowed mode with 8x8 pixels run...python main.py PONG 1 0 8
