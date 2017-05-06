@@ -1,9 +1,6 @@
 '''Python interpreter for Chip8 games. See main.py --help for usage.'''
 
-import binascii
-import random
-import argparse
-import pygame
+import binascii, random, argparse, pygame, os
 
 DISPLAY_WDITH = 64
 DISPLAY_HEIGHT = 32
@@ -535,18 +532,25 @@ if __name__ == "__main__":
     pygame.init()
 
     pygame.display.set_caption('PyChip8')
-    sound = pygame.mixer.Sound("sound.wav")
+    
+    if not os.path.isfile("sound.wav"):
+        print "Warning: \"sound.wav\" file required for sound."
+        sound = None
+    else:
+        sound = pygame.mixer.Sound("sound.wav")
 
     cpu = ChipEightSystem(args.filename[0], args.pixel_size, args.full_screen)
     # 60Hz timer for decrementing delay registers
     pygame.time.set_timer(pygame.USEREVENT + 1, 17)
 
+    #Try is belt and braces in case something goes wrong in fullscreen mode.
     try:
-        while True:
+        run = True;
+        while run:
             cpu.do_next_opcode()
             event = pygame.event.poll()
 
-            if cpu.sound_timer != 0 and args.sound:
+            if cpu.sound_timer != 0 and args.sound and sound:
                 sound.play()
 
             if event.type == pygame.USEREVENT + 1:
@@ -559,7 +563,7 @@ if __name__ == "__main__":
                     cpu.sound_timer -= 1
 
             if pygame.key.get_pressed()[pygame.K_ESCAPE]:
-                raise RuntimeError("User pressed escape.")
+                run = False
 
             # Limit instructions per second
             pygame.time.Clock().tick(500)
