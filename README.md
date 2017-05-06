@@ -53,5 +53,5 @@ Command Line Options
 Resources
 ---------
 
-http://devernay.free.fr/hacks/chip8/C8TECH10.HTM (technical docs)
-http://www.pong-story.com/chip8/ (homebrew roms)
+- http://devernay.free.fr/hacks/chip8/C8TECH10.HTM (Technical docs)
+- http://www.pong-story.com/chip8/ (Homebrew Roms)
