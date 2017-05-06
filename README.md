@@ -37,11 +37,11 @@ Command Line Options
 
   -h, --help
   	
-    show help message and exit
+    Show help message and exit
   
   --pixel-size PIXEL_SIZE
   	
-    Size of an individual pixel (e.g. 2= a 2x2 square).
+    Size of an individual pixel e.g. 2= a 2x2 square. (default 10)
                         
   --sound               
   	
