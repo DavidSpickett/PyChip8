@@ -30,12 +30,15 @@ class Opcode(object):
 				return False
 			n >>= 4
 		return True
+	
+	def __str__(self):
+		return '%04x' % self.code
 
 	def __getitem__(self, key):
-		return int(('%04x' % self.code)[key], 16)
+		return int(str(self)[key], 16)
 
 	def __getslice__(self, i, j):
-		return int(('%04x' % self.code)[i:j], 16)
+		return int(str(self)[i:j], 16)
 
 
 class ChipEightSystem(object):
@@ -130,12 +133,16 @@ class ChipEightSystem(object):
                                      (i * self.pixel_size, j * self.pixel_size,
                                       self.pixel_size, self.pixel_size))
 
+    def fetch(self):
+	o = Opcode((self.memory[self.pc_reg] << 8) | self.memory[self.pc_reg+1])
+	self.pc_reg += 2
+	return o
+
     def do_next_opcode(self):
         '''
         Retrieve and process the next opcode.
         '''
-        next_code = Opcode(
-            (self.memory[self.pc_reg] << 8) | self.memory[self.pc_reg + 1])
+        next_code = self.fetch() 
 
         # Retrieve the instruction where the program counter points to
 
@@ -147,14 +154,12 @@ class ChipEightSystem(object):
         if next_code == "00e0":
             self.display = [
                 [False] * DISPLAY_HEIGHT for j in range(DISPLAY_WIDTH)]
-            self.pc_reg += 2
 
         # 00EE - RET
         # Return from a subroutine.
         elif next_code == "00ee":
             self.pc_reg = self.stack[self.stack_pointer]
             self.stack_pointer -= 1
-            self.pc_reg += 2
 
         # 00FD - QUIT
         # Quit emulator (schip8 instruction)
@@ -164,17 +169,17 @@ class ChipEightSystem(object):
         # 00FE - chip8 mode
         # Set the graphic mode to chip8
         elif next_code == "00fe":
-            self.pc_reg += 2
+	    pass
 
         # OOFF - schip8 mode
         # Set the graphic mode to schip 8
         elif next_code == "00ff":
-            self.pc_reg += 2
+            pass
 
         # 0nnn - SYS addr
         # Jump to a machine code routine at nnn.
         elif next_code[0] == "0":
-            self.pc_reg += 2
+	    raise RuntimeError("Implement me!")
 
         # 1nnn - JP addr
         # Jump to location nnn.
@@ -195,8 +200,6 @@ class ChipEightSystem(object):
         elif next_code == "3???":
             if self.v_regs[next_code[1]] == next_code[2:4]:
                 # Move an extra 2, to skip an instruction
-                self.pc_reg += 4
-            else:
                 self.pc_reg += 2
 
         # 4xkk - SNE Vx, byte
@@ -204,8 +207,6 @@ class ChipEightSystem(object):
         elif next_code == "4???":
             if self.v_regs[next_code[1]] != next_code[2:4]:
                 # Move an extra 2, to skip an instruction
-                self.pc_reg += 4
-            else:
                 self.pc_reg += 2
 
         # 5xy0 - SE Vx, Vy
@@ -213,8 +214,6 @@ class ChipEightSystem(object):
         elif next_code == "5???":
             if self.v_regs[next_code[1]] == self.v_regs[next_code[2]]:
                 # Move an extra 2, skipping the next instruction
-                self.pc_reg += 4
-            else:
                 self.pc_reg += 2
 
         # 6xkk - LD Vx, byte
@@ -222,7 +221,6 @@ class ChipEightSystem(object):
         elif next_code == "6???":
             n = next_code[2:4]
             self.v_regs[next_code[1]] = next_code[2:4]
-            self.pc_reg += 2
 
         # 7xkk - ADD Vx, byte
         # Set Vx = Vx + kk.
@@ -233,34 +231,28 @@ class ChipEightSystem(object):
             # Now take the lowest 8 bits
             self.v_regs[next_code[1]] = self.v_regs[next_code[1]] & 255
 
-            self.pc_reg += 2
-
         # 8xy0 - LD Vx, Vy
         # Set Vx = Vy.
         elif next_code == "8??0":
             self.v_regs[next_code[1]] = self.v_regs[next_code[2]]
-            self.pc_reg += 2
 
         # 8xy1 - OR Vx, Vy
         # Set Vx = Vx OR Vy.
         elif next_code == "8??1":
             res = self.v_regs[next_code[1]] | self.v_regs[next_code[2]]
             self.v_regs[next_code[1]] = res
-            self.pc_reg += 2
 
         # 8xy2 - AND Vx, Vy
         # Set Vx = Vx AND Vy.
         elif next_code == "8??2":
             res = self.v_regs[next_code[1]] & self.v_regs[next_code[2]]
             self.v_regs[next_code[1]] = res
-            self.pc_reg += 2
 
         # 8xy3 - XOR Vx, Vy
         # Set Vx = Vx XOR Vy.
         elif next_code == "8??3":
             res = self.v_regs[next_code[1]] ^ self.v_regs[next_code[2]]
             self.v_regs[next_code[1]] = res
-            self.pc_reg += 2
 
         # 8xy4 - ADD Vx, Vy
         # Set Vx = Vx + Vy, set VF = carry.
@@ -273,8 +265,6 @@ class ChipEightSystem(object):
                 self.v_regs[15] = 1  # Set VF (the carry)
                 self.v_regs[next_code[1]] = self.v_regs[next_code[1]] & 255
                 # Set Vx to the lower 8 bits of the result
-
-            self.pc_reg += 2
 
         # 8xy5 - SUB Vx, Vy
         # Set Vx = Vx - Vy, set VF = NOT borrow.
@@ -294,8 +284,6 @@ class ChipEightSystem(object):
             # Not sure what happens to negative results (if Vy > Vx) so
             # I'm just going to store it and see what happens later on.
 
-            self.pc_reg += 2
-
         # 8xy6 - SHR Vx {, Vy}
         # Set Vx = Vx SHR 1.
         elif next_code == "8??6":
@@ -304,8 +292,6 @@ class ChipEightSystem(object):
 
             # Divide Vx by 2 by shifting right
             self.v_regs[next_code[1]] = self.v_regs[next_code[1]] >> 1
-
-            self.pc_reg += 2
 
         # 8xy7 - SUBN Vx, Vy
         # Set Vx = Vy - Vx, set VF = NOT borrow.
@@ -325,8 +311,6 @@ class ChipEightSystem(object):
             # Not sure what happens to negative results (if Vx > Vy) so
             # I'm just going to store it and see what happens later on.
 
-            self.pc_reg += 2
-
         # 8xyE - SHL Vx {, Vy}
         # Set Vx = Vx SHL 1.
         elif next_code == "8??e":
@@ -341,22 +325,17 @@ class ChipEightSystem(object):
                 self.v_regs[next_code[1]] << 1) & 255
             # Make sure we only store the lower 8 bits
 
-            self.pc_reg += 2
-
         # 9xy0 - SNE Vx, Vy
         # Skip next instruction if Vx != Vy.
         elif next_code == "9???":
             if self.v_regs[next_code[1]] != self.v_regs[next_code[2]]:
-                # 4 means Skipping one instruction
-                self.pc_reg += 4
-            else:
+                # Skipping one instruction
                 self.pc_reg += 2
 
         # Annn - LD I, addr
         # Set I = nnn.
         elif next_code == "a???":
             self.i_reg = next_code[1:4]
-            self.pc_reg += 2
 
         # Bnnn - JP V0, addr
         # Jump to location nnn + V0.
@@ -368,7 +347,6 @@ class ChipEightSystem(object):
         elif next_code == "c???":
             rnd = random.randint(0, 255)
             self.v_regs[next_code[1]] = rnd & next_code[2:4]
-            self.pc_reg += 2
 
         # Dxyn - DRW Vx, Vy, nibble
         # Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
@@ -410,8 +388,6 @@ class ChipEightSystem(object):
                 # Move down for next row
                 y_pos += 1
 
-            self.pc_reg += 2
-
             # Update screen
             self._update_display()
             pygame.display.flip()
@@ -420,23 +396,19 @@ class ChipEightSystem(object):
         # Skip next instruction if key with the value of Vx is pressed.
         elif next_code == "e?9e":
             if check_keys()[self.v_regs[next_code[1]]]:  # 1 means key is down
-                self.pc_reg += 4  # Move an extra instruction along
-            else:
-                self.pc_reg += 2
+                self.pc_reg += 2  # Move an extra instruction along
 
         # ExA1 - SKNP Vx
         # Skip next instruction if key with the value of Vx is not pressed.
         elif next_code == "e?a1":
-            if check_keys()[self.v_regs[next_code[1]]]:
+            if not check_keys()[self.v_regs[next_code[1]]]:
+                # Move an extra instruction along
                 self.pc_reg += 2
-            else:
-                self.pc_reg += 4  # Move an extra instruction along
 
         # Fx07 - LD Vx, DT
         # Set Vx = delay timer value.
         elif next_code == "f?07":
             self.v_regs[next_code[1]] = self.delay_timer
-            self.pc_reg += 2
 
         # Fx0A - LD Vx, K
         # Wait for a key press, store the value of the key in Vx.
@@ -446,32 +418,27 @@ class ChipEightSystem(object):
                 key_states = check_keys()
 
             self.v_regs[next_code[1]] = key_states.index(True)
-            self.pc_reg += 2
 
         # Fx15 - LD DT, Vx
         # Set delay timer = Vx.
         elif next_code == "f?15":
             self.delay_timer = self.v_regs[next_code[1]]
-            self.pc_reg += 2
 
         # Fx18 - LD ST, Vx
         # Set sound timer = Vx.
         elif next_code == "f?18":
             self.sound_timer = self.v_regs[next_code[1]]
-            self.pc_reg += 2
 
         # Fx1E - ADD I, Vx
         # Set I = I + Vx.
         elif next_code == "f?1e":
             self.i_reg += self.v_regs[next_code[1]]
-            self.pc_reg += 2
 
         # Fx29 - LD F, Vx
         # Set I = location of sprite for digit Vx.
         elif next_code == "f?29":
             # Each char being 5 bytes long
             self.i_reg = self.v_regs[next_code[1]] * 5
-            self.pc_reg += 2
 
         # Fx33 - LD B, Vx
         # Store BCD representation of Vx in memory locations I, I+1, and I+2.
@@ -490,21 +457,17 @@ class ChipEightSystem(object):
             # Ones
             self.memory[self.i_reg + 2] = number
 
-            self.pc_reg += 2
-
         #Fx55 - LD [I], Vx
         # Store registers V0 through Vx in memory starting at location I.
         elif next_code == "f?55":
             for i in range(next_code[1] + 1):
                 self.memory[self.i_reg + i] = self.v_regs[i]
-            self.pc_reg += 2
 
         # Fx65 - LD Vx, [I]
         # Read registers V0 through Vx from memory starting at location I.
         elif next_code == "f?65":
             for i in range(next_code[1] + 1):
                 self.v_regs[i] = self.memory[self.i_reg + i]
-            self.pc_reg += 2
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run the Chip8 interpreter.')
