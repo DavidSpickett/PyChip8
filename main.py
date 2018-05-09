@@ -2,7 +2,7 @@
 
 import binascii, random, argparse, pygame, os
 
-DISPLAY_WDITH = 64
+DISPLAY_WIDTH = 64
 DISPLAY_HEIGHT = 32
 
 def check_keys():
@@ -51,7 +51,7 @@ class ChipEightSystem(object):
         self.pixel_size = pixel_size
 
         self.screen = pygame.display.set_mode(
-            (DISPLAY_WDITH * args.pixel_size, DISPLAY_HEIGHT * args.pixel_size),
+            (DISPLAY_WIDTH * args.pixel_size, DISPLAY_HEIGHT * args.pixel_size),
             pygame.FULLSCREEN if full_screen else 0)
 
         # Programs begin after the interpreter
@@ -72,7 +72,7 @@ class ChipEightSystem(object):
         self.stack_pointer = 0
 
         # The Display which is 64x32, defined so we can write with x,y
-        self.display = [([0] * DISPLAY_HEIGHT) for _ in range(DISPLAY_WDITH)]
+        self.display = [([0] * DISPLAY_HEIGHT) for _ in range(DISPLAY_WIDTH)]
 
         # Delay timer, an 8 bit register.
         self.delay_timer = 0
@@ -135,7 +135,7 @@ class ChipEightSystem(object):
         # Clear the screen by filling with black
         self.screen.fill((0, 0, 0))
 
-        for i in range(DISPLAY_WDITH):
+        for i in range(DISPLAY_WIDTH):
             for j in range(DISPLAY_HEIGHT):
                 if self.display[i][j]:
                     self.screen.fill(self.colour,
@@ -158,7 +158,7 @@ class ChipEightSystem(object):
         # Clear the display.
         if next_code == "00e0":
             self.display = [
-                [False] * DISPLAY_HEIGHT for j in range(DISPLAY_WDITH)]
+                [False] * DISPLAY_HEIGHT for j in range(DISPLAY_WIDTH)]
             self.pc_reg += 2
 
         # 00EE - RET
@@ -404,8 +404,8 @@ class ChipEightSystem(object):
             for i, sprite_row in enumerate(data):  # Rows of the sprite
                 for j, pixel in enumerate(sprite_row):  # 0s and 1s in each row
                     new_x = x_pos + j
-                    if new_x >= DISPLAY_WDITH:
-                        new_x = new_x % DISPLAY_WDITH
+                    if new_x >= DISPLAY_WIDTH:
+                        new_x = new_x % DISPLAY_WIDTH
 
                     new_y = y_pos
                     if new_y >= DISPLAY_HEIGHT:
