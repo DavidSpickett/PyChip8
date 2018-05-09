@@ -72,11 +72,12 @@ class ChipEightSystem(object):
         self.stack_pointer = 0
 
         # The Display which is 64x32, defined so we can write with x,y
+	# You'd think you could do [[0]*H]*W, but that just references
+	# the same list each time
         self.display = [([0] * DISPLAY_HEIGHT) for _ in range(DISPLAY_WIDTH)]
 
         # Delay timer, an 8 bit register.
         self.delay_timer = 0
-
         # Sound timer, as for the delay timer
         self.sound_timer = 0
 
@@ -89,28 +90,27 @@ class ChipEightSystem(object):
         '''
 
         font_data = [
-            "F0", "90", "90", "90", "F0",  # Zero
-            "20", "60", "20", "20", "70",  # One
-            "F0", "10", "F0", "80", "F0",  # Two
-            "F0", "10", "F0", "10", "F0",  # Three
-            "90", "90", "F0", "10", "10",  # Four
-            "F0", "80", "F0", "10", "F0",  # Five
-            "F0", "80", "F0", "90", "F0",  # Six
-            "F0", "10", "20", "40", "40",  # Seven
-            "F0", "90", "F0", "90", "F0",  # Eight
-            "F0", "90", "F0", "10", "F0",  # Nine
-            "F0", "90", "F0", "90", "90",  # charA
-            "E0", "90", "E0", "90", "E0",  # charB
-            "F0", "80", "80", "80", "F0",  # charC
-            "E0", "90", "90", "90", "E0",  # charD
-            "F0", "80", "F0", "80", "F0",  # charE
-            "F0", "80", "F0", "80", "80",  # charF
+            0xF0, 0x90, 0x90, 0x90, 0xF0,  # Zero
+            0x20, 0x60, 0x20, 0x20, 0x70,  # One
+            0xF0, 0x10, 0xF0, 0x80, 0xF0,  # Two
+            0xF0, 0x10, 0xF0, 0x10, 0xF0,  # Three
+            0x90, 0x90, 0xF0, 0x10, 0x10,  # Four
+            0xF0, 0x80, 0xF0, 0x10, 0xF0,  # Five
+            0xF0, 0x80, 0xF0, 0x90, 0xF0,  # Six
+            0xF0, 0x10, 0x20, 0x40, 0x40,  # Seven
+            0xF0, 0x90, 0xF0, 0x90, 0xF0,  # Eight
+            0xF0, 0x90, 0xF0, 0x10, 0xF0,  # Nine
+            0xF0, 0x90, 0xF0, 0x90, 0x90,  # charA
+            0xE0, 0x90, 0xE0, 0x90, 0xE0,  # charB
+            0xF0, 0x80, 0x80, 0x80, 0xF0,  # charC
+            0xE0, 0x90, 0x90, 0x90, 0xE0,  # charD
+            0xF0, 0x80, 0xF0, 0x80, 0xF0,  # charE
+            0xF0, 0x80, 0xF0, 0x80, 0x80,  # charF
         ]
-
         self.memory.extend(font_data)
 
         # Fill up till 0x200
-        self.memory.extend(["00"] * 432)
+        self.memory.extend([0x00] * 432)
 
         # Load the rom and make a list of 1 byte hex codes
         with open(rom_name, 'rb') as rom_file:
@@ -118,14 +118,11 @@ class ChipEightSystem(object):
 
             # 2 hex chars = 1 byte
             chunk = 2
-            # Pad to make sure we have whole bytes
-            hex_str += ''.join(['0'] * (len(hex_str) % chunk))
-
             for index in range(0, len(hex_str), chunk):
-                self.memory.append(hex_str[index:index + chunk])
+                self.memory.append(int(hex_str[index:index + chunk], 16))
 
         # Now pad the rest of the 4kb of virtual RAM
-        self.memory.extend(["00"] * (4096 - len(self.memory)))
+        self.memory.extend([0x00] * (4096 - len(self.memory)))
 
     def _update_display(self):
         '''
@@ -147,7 +144,7 @@ class ChipEightSystem(object):
         Retrieve and process the next opcode.
         '''
         next_code = OpCode(
-            self.memory[self.pc_reg] + self.memory[self.pc_reg + 1])
+            '%04x' % ((self.memory[self.pc_reg] << 8) | self.memory[self.pc_reg + 1]))
 
         # Retrieve the instruction where the program counter points to
 
@@ -396,7 +393,7 @@ class ChipEightSystem(object):
             # Hold data to be written to screen
             data = []
             for byte in self.memory[start:start + length]:
-                data.append(format(int(byte, 16), '08b'))
+                data.append(format(byte, '08b'))
 
             # Set to indicate no overwrites, set later if one occurs
             self.v_regs[15] = 0
@@ -492,15 +489,15 @@ class ChipEightSystem(object):
             number = self.v_regs[next_code[1]]
 
             # Hundreds
-            self.memory[self.i_reg] = hex(number / 100)
+            self.memory[self.i_reg] = number / 100
             number -= 100 * (number / 100)  # Remove that part
 
             # Tens
-            self.memory[self.i_reg + 1] = hex(number / 10)
+            self.memory[self.i_reg + 1] = number / 10
             number -= 10 * (number / 10)  # Remove that part
 
             # Ones
-            self.memory[self.i_reg + 2] = hex(number)
+            self.memory[self.i_reg + 2] = number
 
             self.pc_reg += 2
 
@@ -508,14 +505,14 @@ class ChipEightSystem(object):
         # Store registers V0 through Vx in memory starting at location I.
         elif next_code == "f?55":
             for i in range(next_code[1] + 1):
-                self.memory[self.i_reg + i] = hex(self.v_regs[i])
+                self.memory[self.i_reg + i] = self.v_regs[i]
             self.pc_reg += 2
 
         # Fx65 - LD Vx, [I]
         # Read registers V0 through Vx from memory starting at location I.
         elif next_code == "f?65":
             for i in range(next_code[1] + 1):
-                self.v_regs[i] = int(self.memory[self.i_reg + i], 16)
+                self.v_regs[i] = self.memory[self.i_reg + i]
             self.pc_reg += 2
 
 if __name__ == "__main__":
