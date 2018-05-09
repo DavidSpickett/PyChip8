@@ -70,11 +70,9 @@ class ChipEightSystem(object):
         # Stack pointer, 8 bit
         self.stack_pointer = 0
 
-        # The Display which is 64x32, defined so we can write with x,y
-	# You'd think you could do [[0]*H]*W, but that just references
-	# the same list each time
-        self.display = [([0] * DISPLAY_HEIGHT) for _ in range(DISPLAY_WIDTH)]
+	self.clear_display()
 
+        
         # Delay timer, an 8 bit register.
         self.delay_timer = 0
         # Sound timer, as for the delay timer
@@ -82,6 +80,12 @@ class ChipEightSystem(object):
 
         # Colour used to for pixels
         self.colour = (255, 255, 255)
+
+    def clear_display(self):
+        # The Display which is 64x32, defined so we can write with x,y
+	# You'd think you could do [[0]*H]*W, but that just references
+	# the same list each time
+        self.display = [([0] * DISPLAY_HEIGHT) for _ in range(DISPLAY_WIDTH)]
 
     def setup_memory(self, rom_name):
         '''
@@ -152,8 +156,7 @@ class ChipEightSystem(object):
         #00E0 - CLS
         # Clear the display.
         if next_code == "00e0":
-            self.display = [
-                [False] * DISPLAY_HEIGHT for j in range(DISPLAY_WIDTH)]
+	    self.clear_display()
 
         # 00EE - RET
         # Return from a subroutine.
@@ -369,21 +372,15 @@ class ChipEightSystem(object):
 
             for i, sprite_row in enumerate(data):  # Rows of the sprite
                 for j, pixel in enumerate(sprite_row):  # 0s and 1s in each row
-                    new_x = x_pos + j
-                    if new_x >= DISPLAY_WIDTH:
-                        new_x = new_x % DISPLAY_WIDTH
-
-                    new_y = y_pos
-                    if new_y >= DISPLAY_HEIGHT:
-                        new_y = new_y % DISPLAY_HEIGHT
+                    new_x = (x_pos + j) % DISPLAY_WIDTH
+                    new_y = y_pos % DISPLAY_HEIGHT
 
                     if pixel == "1":
-                        if self.display[new_x][new_y]:  # XOR means we overwrite a pixel
-                            self.display[new_x][new_y] = 0
-                            # Indiciate overwriting occured
-                            self.v_regs[15] = 1
-                        else:
-                            self.display[new_x][new_y] = 1
+			# Set if overwriting will occur
+			self.v_regs[15] = self.display[new_x][new_y]
+			# Setting is an XOR operation
+			self.display[new_x][new_y] = not self.display[new_x][new_y]
+			
 
                 # Move down for next row
                 y_pos += 1
