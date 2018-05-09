@@ -1,6 +1,6 @@
 '''Python interpreter for Chip8 games. See main.py --help for usage.'''
 
-import binascii, random, argparse, pygame, os
+import random, argparse, pygame, os
 
 DISPLAY_WIDTH = 64
 DISPLAY_HEIGHT = 32
@@ -110,12 +110,7 @@ class ChipEightSystem(object):
 
         # Load the rom and make a list of 1 byte hex codes
         with open(rom_name, 'rb') as rom_file:
-            hex_str = binascii.hexlify(rom_file.read())
-
-            # 2 hex chars = 1 byte
-            chunk = 2
-            for index in range(0, len(hex_str), chunk):
-                self.memory.append(int(hex_str[index:index + chunk], 16))
+	    self.memory.extend(map(ord, rom_file.read()))
 
         # Now pad the rest of the 4kb of virtual RAM
         self.memory.extend([0x00] * (4096 - len(self.memory)))
