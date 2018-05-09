@@ -232,7 +232,7 @@ class ChipEightSystem(object):
             self.v_regs[next_code[1]] = res
 
             # Now take the lowest 8 bits
-            self.v_regs[next_code[1]] = self.v_regs[next_code[1]] & 255
+            self.v_regs[next_code[1]] = self.v_regs[next_code[1]] & 0xFF 
 
         # 8xy0 - LD Vx, Vy
         # Set Vx = Vy.
@@ -266,7 +266,7 @@ class ChipEightSystem(object):
 
             if sum > 255:
                 self.v_regs[15] = 1  # Set VF (the carry)
-                self.v_regs[next_code[1]] = self.v_regs[next_code[1]] & 255
+                self.v_regs[next_code[1]] = self.v_regs[next_code[1]] & 0xff 
                 # Set Vx to the lower 8 bits of the result
 
         # 8xy5 - SUB Vx, Vy
@@ -318,14 +318,14 @@ class ChipEightSystem(object):
         # Set Vx = Vx SHL 1.
         elif next_code == "8??e":
             # Check most significant bit (looking for a carry)
-            if self.v_regs[next_code[1]] / 255 > 1:
+	    if self.v_regs[next_code[1]] & 0x80:
                 self.v_regs[15] = 1  # Set VF
             else:
                 self.v_regs[15] = 0  # Set VF
 
             # Multiply Vx by 2 by shifting left
             self.v_regs[next_code[1]] = (
-                self.v_regs[next_code[1]] << 1) & 255
+                self.v_regs[next_code[1]] << 1) & 0xff 
             # Make sure we only store the lower 8 bits
 
         # 9xy0 - SNE Vx, Vy
@@ -380,7 +380,6 @@ class ChipEightSystem(object):
 			self.v_regs[15] = self.display[new_x][new_y]
 			# Setting is an XOR operation
 			self.display[new_x][new_y] = not self.display[new_x][new_y]
-			
 
                 # Move down for next row
                 y_pos += 1
