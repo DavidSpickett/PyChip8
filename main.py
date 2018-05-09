@@ -19,27 +19,23 @@ def check_keys():
                  pygame.K_4, pygame.K_r, pygame.K_f, pygame.K_v]
     return [keys[soft_key] for soft_key in soft_keys]
 
+class Opcode(object):
+	def __init__(self, code):
+		self.code = code
 
-class OpCode(str):
-    '''
-    Like a string but allows '?' for wild card comparisons.
-    e.g. 'abcd' == 'a?b?'.
-    '''
-    def __init__(self, s):
-        self.s = s
+	def __eq__(self, rhs):
+		n = self.code
+		for c in reversed(rhs):
+			if c != '?' and (n & 0xf) != int(c, 16):
+				return False
+			n >>= 4
+		return True
 
-    def __eq__(self, rhs):
-        # Note that this uses self.s directly, not our __getitem__
-        for lchar, rchar in zip(self.s, rhs):
-            if rchar != '?' and lchar != rchar:
-                return False
-        return True
+	def __getitem__(self, key):
+		return int(('%04x' % self.code)[key], 16)
 
-    def __getslice__(self, i, j):
-        return int(self.s.__getslice__(i, j), 16)
-
-    def __getitem__(self, key):
-        return int(self.s[key], 16)
+	def __getslice__(self, i, j):
+		return int(('%04x' % self.code)[i:j], 16)
 
 
 class ChipEightSystem(object):
@@ -143,8 +139,8 @@ class ChipEightSystem(object):
         '''
         Retrieve and process the next opcode.
         '''
-        next_code = OpCode(
-            '%04x' % ((self.memory[self.pc_reg] << 8) | self.memory[self.pc_reg + 1]))
+        next_code = Opcode(
+            (self.memory[self.pc_reg] << 8) | self.memory[self.pc_reg + 1])
 
         # Retrieve the instruction where the program counter points to
 
