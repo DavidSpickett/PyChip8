@@ -377,7 +377,10 @@ class ChipEightSystem(object):
 
                     if pixel == "1":
 			# Set if overwriting will occur
-			self.v_regs[15] = self.display[new_x][new_y]
+			# Note that any single overwrite in a draw will cause
+			# v15 to be 1, even if subsequent pixels don't overlap
+			if self.display[new_x][new_y]:
+				self.v_regs[15] = 1
 			# Setting is an XOR operation
 			self.display[new_x][new_y] = not self.display[new_x][new_y]
 
