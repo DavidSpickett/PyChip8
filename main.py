@@ -291,7 +291,7 @@ class ChipEightSystem(object):
         # Set Vx = Vx SHR 1.
         elif next_code == "8??6":
             # Set VF to the LSB of the value
-            self.v_regs[15] = int(next_code[1] & 1)
+            self.v_regs[15] = int(self.v_regs[next_code[1]] & 1)
 
             # Divide Vx by 2 by shifting right
             self.v_regs[next_code[1]] = self.v_regs[next_code[1]] >> 1
